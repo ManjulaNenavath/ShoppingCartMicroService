@@ -13,8 +13,11 @@ D:\RestAssured\
 │   ├── docker-compose.yml
 │   └── render.yaml                           # one-click cloud deploy
 └── RestAssured_Framework_OnlineStoreAPITesting\   # The test framework
-    ├── src/test/java/{pojo,routes,payloads,testcases,utils}
-    ├── src/test/resources/{Config.properties, *Schema.json}
+    ├── src/test/java/{routes,payloads,testcases,utils}
+    ├── src/test/resources/
+    │   ├── payloads/*.json          # request-body TEMPLATES (with {{placeholders}})
+    │   ├── Config.properties
+    │   └── *Schema.json             # response contract schemas
     ├── testdata/{User,Product,Cart}.json
     └── testng.xml
 ```
@@ -128,11 +131,33 @@ mvn test -Dtest=UserTests#loginWrongPassword
 The golden rule of a maintainable API framework: **a test method should read like a sentence,
 and the plumbing should live somewhere else.** Here is where each responsibility lives and *why*.
 
-### `pojo/` — typed request/response models
-`User`, `Product`, `Cart`. REST Assured + Jackson serialize these to JSON for you.
-**Why bother instead of raw JSON strings?** Compile-time safety. Rename a field and the tests
-that use it fail to compile — instead of silently sending `{"emial": ...}` and getting a
-confusing 400 at runtime.
+### Payloads — file-based templates (this framework's choice)
+Request bodies are **JSON template files** under `src/test/resources/payloads/`
+(`registerUser.json`, `loginUser.json`, `createProduct.json`, `addCartItem.json`), each with
+`{{placeholder}}` tokens:
+```json
+{ "username": "{{username}}", "password": "{{password}}", "email": "{{email}}", ... }
+```
+`payloads/PayloadManager.java` reads a template off the classpath and fills the tokens:
+```java
+Map<String,Object> data = PayloadManager.randomUserData();          // unique values
+String body = PayloadManager.build("registerUser.json", data);      // -> ready JSON
+```
+**Why templates, not plain static JSON?** A hardcoded username hits `409 already taken` on the
+second run. Filling `{{username}}` with a unique value each run keeps the suite repeatable. The
+test owns the data map, so it can **reuse** those values later (register, then log in with the
+exact same username/password rendered from `loginUser.json`).
+
+**File-based vs POJO — the tradeoff a senior tester weighs:**
+| | File-based templates (used here) | POJO + Jackson |
+|---|---|---|
+| Body reads like the real request | ✅ exactly | ❌ indirect |
+| Non-Java testers can edit bodies | ✅ | ❌ |
+| Compile-time safety on field names | ❌ (strings) | ✅ rename breaks the build |
+| Malformed-JSON negative tests | ✅ trivial (edit the file) | ❌ hard (object is always valid) |
+
+Neither is "correct" — this framework uses files because the bodies stay human-readable and
+editable, which is what most manual-to-automation testers prefer.
 
 ### `routes/` — the URL map + request wrappers
 - `Routes.java` holds every base URL and path **once**. When an endpoint moves, you edit one line.
@@ -141,11 +166,10 @@ confusing 400 at runtime.
   and never touch the HTTP DSL directly. This is the single most important maintainability move
   in the whole framework.
 
-### `payloads/Payload.java` — the data factory
-Uses **JavaFaker** to build valid-but-random users/products. Because every run gets a fresh
-username, re-running the suite never trips the `409 username already taken` rule. Fixture data
-that tests fight over is the #1 cause of flaky API suites — randomized identities kill that class
-of flakiness.
+### `payloads/PayloadManager.java` — the template renderer + data factory
+Reads the JSON templates and uses **JavaFaker** to generate valid-but-random values, so every run
+gets a fresh username/email. Fixture data that tests fight over is the #1 cause of flaky API
+suites — randomized identities kill that class of flakiness.
 
 ### `utils/`
 - `ConfigReader` — loads `Config.properties`, and a `-D` system property overrides any value

@@ -1,13 +1,13 @@
 package testcases;
 
 import io.restassured.response.Response;
+import org.json.JSONObject;
 import org.testng.annotations.Test;
-import payloads.Payload;
-import pojo.Product;
+import payloads.PayloadManager;
 import routes.ProductEndpoints;
 import utils.DataProviders;
 
-import java.math.BigDecimal;
+import java.util.Map;
 
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.greaterThanOrEqualTo;
@@ -27,21 +27,29 @@ public class ProductTests extends BaseClass {
                 .body("[0].title", notNullValue());
     }
 
-    @Test(priority = 2, description = "Create product -> 201")
+    @Test(priority = 2, description = "Create product from template -> 201")
     public void createProduct() {
-        Product product = Payload.newProduct();
-        Response response = ProductEndpoints.createProduct(product);
+        String payload = PayloadManager.randomProduct();
+        String expectedTitle = new JSONObject(payload).getString("title");
+        Response response = ProductEndpoints.createProduct(payload);
         response.then()
                 .statusCode(201)
                 .body("id", notNullValue())
-                .body("title", equalTo(product.getTitle()));
+                .body("title", equalTo(expectedTitle));
         productId = response.jsonPath().getLong("id");
     }
 
     @Test(priority = 2, description = "Create product with invalid body -> 400")
     public void createInvalidProduct() {
-        Product bad = new Product(null, new BigDecimal("-1"), "x", "y", null);
-        Response response = ProductEndpoints.createProduct(bad);
+        // "null" (as a string) renders to a JSON null in the unquoted stockQuantity slot.
+        String payload = PayloadManager.build("createProduct.json", Map.of(
+                "title", "",            // blank -> @NotBlank fails
+                "price", "-1",          // negative -> @DecimalMin fails
+                "description", "x",
+                "category", "y",
+                "stockQuantity", "null" // -> @NotNull fails
+        ));
+        Response response = ProductEndpoints.createProduct(payload);
         response.then().statusCode(400).body("status", equalTo(400));
     }
 
@@ -59,9 +67,14 @@ public class ProductTests extends BaseClass {
 
     @Test(priority = 4, description = "Update product -> 200")
     public void updateProduct() {
-        Product update = new Product("Updated Title", new BigDecimal("19.99"),
-                "updated desc", "electronics", 10);
-        Response response = ProductEndpoints.updateProduct(productId, update);
+        String payload = PayloadManager.build("createProduct.json", Map.of(
+                "title", "Updated Title",
+                "price", "19.99",
+                "description", "updated desc",
+                "category", "electronics",
+                "stockQuantity", "10"
+        ));
+        Response response = ProductEndpoints.updateProduct(productId, payload);
         response.then().statusCode(200)
                 .body("title", equalTo("Updated Title"))
                 .body("stockQuantity", equalTo(10));
@@ -75,8 +88,8 @@ public class ProductTests extends BaseClass {
 
     @Test(priority = 6, dataProvider = "products", dataProviderClass = DataProviders.class,
             description = "Data-driven create from testdata/Product.json -> 201")
-    public void createProductsFromData(Product product) {
-        Response response = ProductEndpoints.createProduct(product);
-        response.then().statusCode(201).body("title", equalTo(product.getTitle()));
+    public void createProductsFromData(JSONObject product) {
+        Response response = ProductEndpoints.createProduct(product.toString());
+        response.then().statusCode(201).body("title", equalTo(product.getString("title")));
     }
 }

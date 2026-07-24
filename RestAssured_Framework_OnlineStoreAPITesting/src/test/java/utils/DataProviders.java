@@ -1,45 +1,39 @@
 package utils;
 
-import com.google.gson.Gson;
+import org.json.JSONArray;
+import org.json.JSONObject;
 import org.testng.annotations.DataProvider;
-import pojo.Product;
-import pojo.User;
 
-import java.io.FileReader;
-import java.io.Reader;
+import java.nio.file.Files;
+import java.nio.file.Path;
 
 /**
- * Data-driven testing: feed multiple rows into one @Test method.
+ * Data-driven testing WITHOUT POJOs.
  *
- * The JSON files under /testdata are read once and turned into POJO arrays. Each
- * element becomes one invocation of the test, so adding a case is a data edit,
- * not a code change.
+ * We read the JSON arrays under /testdata and hand each element to the test as an
+ * org.json.JSONObject. The test sends product.toString() as the body and reads
+ * fields (product.getString("title")) for assertions - no Java model class needed.
+ * Adding a case is a pure data edit.
  */
 public class DataProviders {
 
-    private static final Gson GSON = new Gson();
-
     @DataProvider(name = "products")
     public Object[][] products() throws Exception {
-        try (Reader reader = new FileReader("testdata/Product.json")) {
-            Product[] products = GSON.fromJson(reader, Product[].class);
-            Object[][] rows = new Object[products.length][1];
-            for (int i = 0; i < products.length; i++) {
-                rows[i][0] = products[i];
-            }
-            return rows;
-        }
+        return rows("testdata/Product.json");
     }
 
     @DataProvider(name = "users")
     public Object[][] users() throws Exception {
-        try (Reader reader = new FileReader("testdata/User.json")) {
-            User[] users = GSON.fromJson(reader, User[].class);
-            Object[][] rows = new Object[users.length][1];
-            for (int i = 0; i < users.length; i++) {
-                rows[i][0] = users[i];
-            }
-            return rows;
+        return rows("testdata/User.json");
+    }
+
+    private Object[][] rows(String file) throws Exception {
+        String content = Files.readString(Path.of(file));
+        JSONArray array = new JSONArray(content);
+        Object[][] rows = new Object[array.length()][1];
+        for (int i = 0; i < array.length(); i++) {
+            rows[i][0] = array.getJSONObject(i);
         }
+        return rows;
     }
 }

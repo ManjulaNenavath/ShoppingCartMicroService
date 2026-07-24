@@ -2,9 +2,10 @@ package testcases;
 
 import io.restassured.response.Response;
 import org.testng.annotations.Test;
-import payloads.Payload;
-import pojo.User;
+import payloads.PayloadManager;
 import routes.UserEndpoints;
+
+import java.util.Map;
 
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.notNullValue;
@@ -12,50 +13,57 @@ import static org.testng.Assert.assertEquals;
 import static org.testng.Assert.assertNotNull;
 
 /**
- * End-to-end coverage of the User service.
+ * End-to-end coverage of the User service - using FILE-BASED payloads.
  *
- * Test design notes:
- *  - Each run creates a fresh random user (Payload.newUser) so tests are repeatable.
- *  - We cover the full lifecycle (register -> login -> get -> update -> delete)
- *    AND the negative branches (duplicate=409, bad input=400, bad creds=401,
- *    missing id=404). Positive-only suites give false confidence.
- *  - priority controls order within the class; the created user's id is shared
- *    through an instance field so later tests operate on a known record.
+ * Bodies come from src/test/resources/payloads/*.json via PayloadManager. We keep
+ * the generated data map (userData) on the instance so register, login and update
+ * all render from the same values - e.g. login reuses the exact username/password
+ * we registered with.
  */
 public class UserTests extends BaseClass {
 
-    private final User user = Payload.newUser();
+    private final Map<String, Object> userData = PayloadManager.randomUserData();
     private long userId;
 
     @Test(priority = 1, description = "Register a new user -> 201 Created")
     public void registerUser() {
-        Response response = UserEndpoints.registerUser(user);
+        String payload = PayloadManager.build("registerUser.json", userData);
+        Response response = UserEndpoints.registerUser(payload);
         response.then()
                 .statusCode(201)
                 .body("id", notNullValue())
-                .body("username", equalTo(user.getUsername()))
-                .body("email", equalTo(user.getEmail()));
+                .body("username", equalTo(userData.get("username")))
+                .body("email", equalTo(userData.get("email")));
         userId = response.jsonPath().getLong("id");
         assertNotNull(userId);
     }
 
     @Test(priority = 2, description = "Registering the same username again -> 409 Conflict")
     public void registerDuplicate() {
-        Response response = UserEndpoints.registerUser(user);
+        String payload = PayloadManager.build("registerUser.json", userData);
+        Response response = UserEndpoints.registerUser(payload);
         assertEquals(response.statusCode(), 409);
     }
 
     @Test(priority = 2, description = "Register with invalid body -> 400 Bad Request")
     public void registerInvalid() {
-        User bad = new User("ab", "", "not-an-email", null, null, null);
-        Response response = UserEndpoints.registerUser(bad);
+        // Build straight from a template with deliberately bad values.
+        String payload = PayloadManager.build("registerUser.json", Map.of(
+                "username", "ab",          // too short
+                "password", "",            // blank
+                "email", "not-an-email",   // invalid
+                "firstName", "x",
+                "lastName", "y",
+                "phone", "0"
+        ));
+        Response response = UserEndpoints.registerUser(payload);
         response.then().statusCode(400).body("status", equalTo(400));
     }
 
     @Test(priority = 3, description = "Login with correct credentials -> 200 + token")
     public void loginSuccess() {
-        String body = "{\"username\":\"" + user.getUsername() + "\",\"password\":\"" + user.getPassword() + "\"}";
-        Response response = UserEndpoints.login(body);
+        String payload = PayloadManager.build("loginUser.json", userData);
+        Response response = UserEndpoints.login(payload);
         response.then()
                 .statusCode(200)
                 .body("token", notNullValue())
@@ -64,8 +72,11 @@ public class UserTests extends BaseClass {
 
     @Test(priority = 3, description = "Login with wrong password -> 401 Unauthorized")
     public void loginWrongPassword() {
-        String body = "{\"username\":\"" + user.getUsername() + "\",\"password\":\"wrong-pass\"}";
-        Response response = UserEndpoints.login(body);
+        String payload = PayloadManager.build("loginUser.json", Map.of(
+                "username", userData.get("username"),
+                "password", "wrong-pass"
+        ));
+        Response response = UserEndpoints.login(payload);
         assertEquals(response.statusCode(), 401);
     }
 
@@ -83,9 +94,11 @@ public class UserTests extends BaseClass {
 
     @Test(priority = 5, description = "Update user profile -> 200")
     public void updateUser() {
-        user.setFirstName("Updated");
-        user.setPhone("999-0000");
-        Response response = UserEndpoints.updateUser(userId, user);
+        // Re-render the register template with one changed field.
+        userData.put("firstName", "Updated");
+        userData.put("phone", "999-0000");
+        String payload = PayloadManager.build("registerUser.json", userData);
+        Response response = UserEndpoints.updateUser(userId, payload);
         response.then().statusCode(200).body("firstName", equalTo("Updated"));
     }
 

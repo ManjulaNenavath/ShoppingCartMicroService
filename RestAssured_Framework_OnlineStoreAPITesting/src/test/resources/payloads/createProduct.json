@@ -1,0 +1,7 @@
+{
+  "title": "{{title}}",
+  "price": {{price}},
+  "description": "{{description}}",
+  "category": "{{category}}",
+  "stockQuantity": {{stockQuantity}}
+}

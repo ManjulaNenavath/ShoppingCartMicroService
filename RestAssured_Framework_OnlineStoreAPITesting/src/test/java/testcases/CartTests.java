@@ -2,7 +2,7 @@ package testcases;
 
 import io.restassured.response.Response;
 import org.testng.annotations.Test;
-import payloads.Payload;
+import payloads.PayloadManager;
 import routes.CartEndpoints;
 
 import static org.hamcrest.Matchers.equalTo;
@@ -30,7 +30,7 @@ public class CartTests extends BaseClass {
 
     @Test(priority = 2, description = "Add item to cart -> 201 and totalPrice updates")
     public void addItem() {
-        Response response = CartEndpoints.addItem(userId, Payload.newCartItem(1L));
+        Response response = CartEndpoints.addItem(userId, PayloadManager.randomCartItem(1L));
         response.then()
                 .statusCode(201)
                 .body("items.size()", equalTo(1))
@@ -40,7 +40,7 @@ public class CartTests extends BaseClass {
 
     @Test(priority = 3, description = "Add a second item -> 201, cart now has 2 items")
     public void addSecondItem() {
-        Response response = CartEndpoints.addItem(userId, Payload.newCartItem(2L));
+        Response response = CartEndpoints.addItem(userId, PayloadManager.randomCartItem(2L));
         response.then().statusCode(201).body("items.size()", equalTo(2));
     }
 
