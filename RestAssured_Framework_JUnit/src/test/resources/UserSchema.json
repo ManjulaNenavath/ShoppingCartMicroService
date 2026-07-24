@@ -1,0 +1,13 @@
+{
+  "$schema": "http://json-schema.org/draft-04/schema#",
+  "type": "object",
+  "required": ["id", "username", "email"],
+  "properties": {
+    "id": { "type": "integer" },
+    "username": { "type": "string" },
+    "email": { "type": "string" },
+    "firstName": { "type": ["string", "null"] },
+    "lastName": { "type": ["string", "null"] },
+    "phone": { "type": ["string", "null"] }
+  }
+}

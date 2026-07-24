@@ -1,0 +1,23 @@
+[
+  {
+    "title": "Noise Cancelling Headphones",
+    "price": 199.99,
+    "description": "Over-ear bluetooth headphones",
+    "category": "electronics",
+    "stockQuantity": 80
+  },
+  {
+    "title": "Stainless Water Bottle",
+    "price": 24.50,
+    "description": "750ml insulated bottle",
+    "category": "kitchen",
+    "stockQuantity": 250
+  },
+  {
+    "title": "Yoga Mat",
+    "price": 39.00,
+    "description": "6mm non-slip mat",
+    "category": "fitness",
+    "stockQuantity": 140
+  }
+]

@@ -5,7 +5,7 @@
     <modelVersion>4.0.0</modelVersion>
 
     <groupId>com.ecommerce.qa</groupId>
-    <artifactId>RestAssured_Framework_OnlineStoreAPITesting</artifactId>
+    <artifactId>RestAssured_Framework_JUnit</artifactId>
     <version>1.0.0</version>
 
     <properties>
@@ -13,42 +13,41 @@
         <maven.compiler.target>17</maven.compiler.target>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <rest-assured.version>5.4.0</rest-assured.version>
-        <testng.version>7.10.2</testng.version>
-        <allure.version>2.27.0</allure.version>
-        <aspectj.version>1.9.22</aspectj.version>
+        <junit.version>5.10.2</junit.version>
     </properties>
 
     <dependencies>
-        <!-- Core REST Assured: given()/when()/then() DSL -->
+        <!-- JUnit 5 (Jupiter API + engine) -->
+        <dependency>
+            <groupId>org.junit.jupiter</groupId>
+            <artifactId>junit-jupiter</artifactId>
+            <version>${junit.version}</version>
+            <scope>test</scope>
+        </dependency>
+        <!-- Launcher: needed to COMPILE our TestExecutionListener (PdfReporter).
+             junit-jupiter does not bring the launcher onto the compile classpath. -->
+        <dependency>
+            <groupId>org.junit.platform</groupId>
+            <artifactId>junit-platform-launcher</artifactId>
+            <version>1.10.2</version>
+            <scope>test</scope>
+        </dependency>
+
+        <!-- REST Assured stack (framework-agnostic) -->
         <dependency>
             <groupId>io.rest-assured</groupId>
             <artifactId>rest-assured</artifactId>
             <version>${rest-assured.version}</version>
         </dependency>
-        <!-- JSON path assertions -->
         <dependency>
             <groupId>io.rest-assured</groupId>
             <artifactId>json-path</artifactId>
             <version>${rest-assured.version}</version>
         </dependency>
-        <!-- XML path assertions -->
-        <dependency>
-            <groupId>io.rest-assured</groupId>
-            <artifactId>xml-path</artifactId>
-            <version>${rest-assured.version}</version>
-        </dependency>
-        <!-- JSON schema validation: matchesJsonSchemaInClasspath(...) -->
         <dependency>
             <groupId>io.rest-assured</groupId>
             <artifactId>json-schema-validator</artifactId>
             <version>${rest-assured.version}</version>
-        </dependency>
-
-        <!-- Test runner -->
-        <dependency>
-            <groupId>org.testng</groupId>
-            <artifactId>testng</artifactId>
-            <version>${testng.version}</version>
         </dependency>
 
         <!-- JSON helpers -->
@@ -75,33 +74,14 @@
             <version>1.0.2</version>
         </dependency>
 
-        <!-- OAuth helper (part of the reference stack) -->
-        <dependency>
-            <groupId>com.github.scribejava</groupId>
-            <artifactId>scribejava-apis</artifactId>
-            <version>8.3.3</version>
-        </dependency>
-
-        <!-- Reporting: Allure + Extent -->
-        <dependency>
-            <groupId>io.qameta.allure</groupId>
-            <artifactId>allure-testng</artifactId>
-            <version>${allure.version}</version>
-        </dependency>
-        <dependency>
-            <groupId>com.aventstack</groupId>
-            <artifactId>extentreports</artifactId>
-            <version>5.1.2</version>
-        </dependency>
-
-        <!-- PDF reporting (free, maintained iText 4 fork) -->
+        <!-- PDF reporting -->
         <dependency>
             <groupId>com.github.librepdf</groupId>
             <artifactId>openpdf</artifactId>
             <version>1.3.35</version>
         </dependency>
 
-        <!-- SLF4J simple binding so REST Assured logging has a backend (no warnings) -->
+        <!-- Quiet SLF4J backend -->
         <dependency>
             <groupId>org.slf4j</groupId>
             <artifactId>slf4j-simple</artifactId>
@@ -112,28 +92,14 @@
 
     <build>
         <plugins>
-            <!-- Surefire runs testng.xml. AspectJ weaver enables Allure @Step capture. -->
+            <!-- Surefire auto-detects the JUnit Platform when junit-jupiter is present.
+                 Parallelism + our PDF listener are configured in
+                 src/test/resources/junit-platform.properties (no testng.xml here). -->
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-surefire-plugin</artifactId>
                 <version>3.2.5</version>
-                <configuration>
-                    <suiteXmlFiles>
-                        <suiteXmlFile>testng.xml</suiteXmlFile>
-                    </suiteXmlFiles>
-                    <argLine>
-                        -javaagent:"${settings.localRepository}/org/aspectj/aspectjweaver/${aspectj.version}/aspectjweaver-${aspectj.version}.jar"
-                    </argLine>
-                </configuration>
-                <dependencies>
-                    <dependency>
-                        <groupId>org.aspectj</groupId>
-                        <artifactId>aspectjweaver</artifactId>
-                        <version>${aspectj.version}</version>
-                    </dependency>
-                </dependencies>
             </plugin>
         </plugins>
     </build>
-
 </project>
