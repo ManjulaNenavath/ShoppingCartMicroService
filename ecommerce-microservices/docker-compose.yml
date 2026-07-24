@@ -1,0 +1,28 @@
+# Runs all three microservices together.
+#   docker-compose up --build
+# Each service builds from its own Dockerfile (context is the whole reactor so the
+# parent POM resolves). Ports are mapped to the host so REST Assured can reach them.
+services:
+  user-service:
+    build:
+      context: .
+      dockerfile: user-service/Dockerfile
+    container_name: user-service
+    ports:
+      - "8081:8081"
+
+  product-service:
+    build:
+      context: .
+      dockerfile: product-service/Dockerfile
+    container_name: product-service
+    ports:
+      - "8082:8082"
+
+  cart-service:
+    build:
+      context: .
+      dockerfile: cart-service/Dockerfile
+    container_name: cart-service
+    ports:
+      - "8083:8083"

@@ -1,0 +1,31 @@
+server:
+  # Locally this is 8081. On Render/Railway the platform injects PORT and we bind to it.
+  port: ${PORT:8081}
+
+spring:
+  application:
+    name: user-service
+  datasource:
+    # In-memory H2. DB_CLOSE_DELAY=-1 keeps the schema alive for the JVM's lifetime.
+    url: jdbc:h2:mem:usersdb;DB_CLOSE_DELAY=-1
+    driver-class-name: org.h2.Driver
+    username: sa
+    password: ""
+  jpa:
+    hibernate:
+      ddl-auto: update      # auto-create/update tables from @Entity classes
+    show-sql: true
+    properties:
+      hibernate:
+        format_sql: true
+  h2:
+    console:
+      enabled: true          # browse data at http://localhost:8081/h2-console
+      path: /h2-console
+
+# Expose health for Docker/Render healthchecks
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info

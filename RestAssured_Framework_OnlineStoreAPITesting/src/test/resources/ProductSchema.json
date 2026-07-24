@@ -1,0 +1,13 @@
+{
+  "$schema": "http://json-schema.org/draft-04/schema#",
+  "type": "object",
+  "required": ["id", "title", "price", "stockQuantity"],
+  "properties": {
+    "id": { "type": "integer" },
+    "title": { "type": "string" },
+    "price": { "type": "number" },
+    "description": { "type": ["string", "null"] },
+    "category": { "type": ["string", "null"] },
+    "stockQuantity": { "type": "integer" }
+  }
+}

@@ -1,0 +1,34 @@
+# Render Blueprint (https://render.com) — deploys all three services from one repo.
+#
+# How to use:
+#   1. Push this repo to GitHub (already set up: ShoppingCartMicroService).
+#   2. In Render: New + -> Blueprint -> pick this repo. Render reads this file and
+#      creates three Docker web services.
+#   3. Each gets a public HTTPS URL like https://user-service-xxxx.onrender.com
+#   4. Point the REST Assured tests at those URLs (see the framework README).
+#
+# Note: dockerContext is the repo-relative path to the microservices folder so the
+# multi-stage Dockerfiles can see the parent POM.
+# Render injects PORT automatically; each service binds to it via ${PORT:...} in
+# its application.yml. No SERVER_PORT override needed.
+services:
+  - type: web
+    name: user-service
+    runtime: docker
+    dockerfilePath: ecommerce-microservices/user-service/Dockerfile
+    dockerContext: ecommerce-microservices
+    plan: free
+
+  - type: web
+    name: product-service
+    runtime: docker
+    dockerfilePath: ecommerce-microservices/product-service/Dockerfile
+    dockerContext: ecommerce-microservices
+    plan: free
+
+  - type: web
+    name: cart-service
+    runtime: docker
+    dockerfilePath: ecommerce-microservices/cart-service/Dockerfile
+    dockerContext: ecommerce-microservices
+    plan: free
